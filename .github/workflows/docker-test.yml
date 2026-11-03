@@ -1,0 +1,39 @@
+name: Docker build and run test
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  docker-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build the image (same command as the setup lab)
+        run: docker build -t cloud-quest:v1 .
+
+      - name: Run two containers from the same image
+        run: |
+          docker run -d --name cq1 -p 8080:8080 cloud-quest:v1
+          docker run -d --name cq2 -p 8081:8080 -e VERSION=v2 cloud-quest:v1
+          sleep 5
+          docker ps
+
+      - name: Game page loads
+        run: curl -fsS http://localhost:8080/ | grep -q "<title>Cloud Quest</title>"
+
+      - name: API reports the container ID and version
+        run: |
+          info1=$(curl -fsS http://localhost:8080/api/info); echo "$info1"
+          info2=$(curl -fsS http://localhost:8081/api/info); echo "$info2"
+          id1=$(docker inspect -f '{{.Config.Hostname}}' cq1)
+          echo "$info1" | grep -q "\"host\":\"$id1\""
+          echo "$info1" | grep -q '"version":"v1"'
+          echo "$info2" | grep -q '"version":"v2"'
+
+      - name: Container logs
+        if: always()
+        run: docker logs cq1
