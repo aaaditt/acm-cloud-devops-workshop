@@ -5,7 +5,7 @@ A five-level browser game about Day 1's concepts (IaaS/PaaS/SaaS, shared respons
 Part of the ACM Cloud and DevOps Workshop (Day 1).
 
 ```bash
-git clone https://github.com/aaaditt/cloud-quest.git
+git clone https://github.com/aaaditt/acm-cloud-devops-workshop.git cloud-quest
 cd cloud-quest
 docker build -t cloud-quest:v1 .
 docker run -p 8080:8080 cloud-quest:v1
