@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Quest</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☁️</text></svg>">
+<style>
+  :root {
+    --bg: #f4f6fb; --panel: #ffffff; --ink: #141a2b; --muted: #5b6478; --line: #dde2ee;
+    --brand: #3d5afe; --brand-ink: #ffffff; --good: #12805c; --good-bg: #e3f6ee;
+    --bad: #c62d42; --bad-bg: #fde8eb; --warn: #b45309; --chip: #eef1fb;
+    --shadow: 0 6px 24px rgba(20, 26, 43, 0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1220; --panel: #171c2e; --ink: #e8ebf5; --muted: #9aa3ba; --line: #2a3150;
+      --brand: #7c8cff; --brand-ink: #0e1220; --good: #4ade9b; --good-bg: #133528;
+      --bad: #ff7a8c; --bad-bg: #3b1820; --warn: #fbbf24; --chip: #222a45;
+      --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  .logo { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; }
+  .hud { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    background: var(--chip); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .chip b { font-weight: 700; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); }
+  h1 { font-size: 2rem; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.35rem; margin: 0 0 6px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .levels { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 8px; }
+  .levels li { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .levels .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--chip); font-weight: 700; flex: none; }
+  label { display: block; font-weight: 600; margin: 16px 0 6px; }
+  input[type=text] {
+    width: 100%; padding: 12px 14px; font: inherit; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  }
+  button {
+    font: inherit; cursor: pointer; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--ink); padding: 12px 16px; text-align: left;
+    transition: transform 0.08s, border-color 0.15s, background 0.15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--brand); }
+  button:active:not(:disabled) { transform: scale(0.98); }
+  button:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+  button:disabled { cursor: default; }
+  .primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 700; text-align: center; padding: 14px 22px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .progress { height: 6px; background: var(--chip); border-radius: 999px; overflow: hidden; margin: 14px 0 20px; }
+  .progress > div { height: 100%; background: var(--brand); transition: width 0.3s; }
+  .timer { height: 4px; background: var(--chip); border-radius: 999px; overflow: hidden; margin-bottom: 18px; }
+  .timer > div { height: 100%; background: var(--warn); }
+  .kicker { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+  .prompt { font-size: 1.3rem; font-weight: 700; margin: 6px 0 18px; }
+  .options { display: grid; gap: 10px; }
+  .options.three { grid-template-columns: repeat(3, 1fr); }
+  .options.two { grid-template-columns: repeat(2, 1fr); }
+  .options.three button, .options.two button { text-align: center; font-weight: 700; padding: 18px 10px; }
+  @media (max-width: 520px) { .options.three { grid-template-columns: 1fr; } }
+  .key { display: inline-block; min-width: 1.4em; padding: 0 5px; margin-right: 8px; border-radius: 5px; background: var(--chip); color: var(--muted); font-size: 0.8rem; text-align: center; }
+  .correct { background: var(--good-bg) !important; border-color: var(--good) !important; }
+  .wrong { background: var(--bad-bg) !important; border-color: var(--bad) !important; }
+  .feedback { margin-top: 18px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); }
+  .feedback.ok { background: var(--good-bg); border-color: var(--good); }
+  .feedback.no { background: var(--bad-bg); border-color: var(--bad); }
+  .feedback strong { display: block; margin-bottom: 4px; }
+  .code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.95rem; display: grid; gap: 6px; }
+  .code button { padding: 10px 14px; white-space: pre; overflow-x: auto; }
+  .code .ln { color: var(--muted); margin-right: 14px; user-select: none; }
+  .tiles { display: grid; gap: 10px; }
+  .tile small { display: block; color: var(--muted); }
+  .slots { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .slot { flex: 1 1 100px; min-height: 44px; border: 2px dashed var(--line); border-radius: 10px; display: grid; place-items: center; font-weight: 700; font-size: 0.9rem; padding: 6px; text-align: center; }
+  .slot.filled { border-style: solid; border-color: var(--good); background: var(--good-bg); }
+  .shake { animation: shake 0.35s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .pop { animation: pop 0.4s; }
+  @keyframes pop { 50% { transform: scale(1.12); } }
+  .big { font-size: 3.2rem; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .rank { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 16px 0; }
+  .stat { background: var(--chip); border-radius: 12px; padding: 12px; }
+  .stat b { display: block; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+  .share { font-family: ui-monospace, Consolas, monospace; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; word-break: break-word; font-size: 0.9rem; }
+  .tip { border-left: 4px solid var(--brand); padding: 10px 14px; background: var(--chip); border-radius: 0 10px 10px 0; margin-top: 16px; font-size: 0.95rem; }
+  code { font-family: ui-monospace, Consolas, monospace; background: var(--chip); padding: 1px 6px; border-radius: 5px; font-size: 0.9em; }
+  footer { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 0 16px 24px; }
+  .sr { position: absolute; left: -9999px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">☁️ Cloud Quest</div>
+  <div class="hud" aria-live="polite">
+    <span class="chip">Score <b id="hud-score">0</b></span>
+    <span class="chip">Streak <b id="hud-streak">0</b>🔥</span>
+    <span class="chip" id="hud-level">Level –</span>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  Served by container <code id="host">…</code> · <span id="ver">v?</span>
+</footer>
+
+<div class="sr" aria-live="assertive" id="announce"></div>
+
+<script>
+// ---------- Content ----------
+
+const LEVELS = [
+  {
+    id: "model", title: "Guess the Model", blurb: "IaaS, PaaS or SaaS? Rent the empty flat, the furnished flat, or the hotel room.",
+    type: "choice", layout: "three", timed: true,
+    options: ["IaaS", "PaaS", "SaaS"],
+    questions: [
+      { q: "Gmail", a: "SaaS", why: "You just use the finished product. Google runs everything." },
+      { q: "A Compute Engine VM where you install and patch everything yourself", a: "IaaS", why: "You rent a raw server. The OS and everything above it is yours." },
+      { q: "Cloud Run: you hand over a container image and Google runs it", a: "PaaS", why: "You bring the app; Google runs the platform. This is where you deploy on Day 2." },
+      { q: "Zoom", a: "SaaS", why: "Ready-to-use software in the browser or an app." },
+      { q: "An AWS EC2 instance", a: "IaaS", why: "EC2 is AWS's virtual machine service, the same idea as Compute Engine." },
+      { q: "Azure App Service", a: "PaaS", why: "Upload your app, Azure handles the servers. Azure's version of Cloud Run / App Engine." },
+      { q: "Google Docs", a: "SaaS", why: "Finished software, nothing to manage." },
+      { q: "App Engine", a: "PaaS", why: "Google's original PaaS: you push code, it runs it." },
+    ],
+  },
+  {
+    id: "fault", title: "Whose Fault?", blurb: "Something went wrong. Is it on you, or on the cloud provider? (Shared responsibility.)",
+    type: "choice", layout: "two", timed: true,
+    options: ["You", "Provider"],
+    questions: [
+      { q: "A Compute Engine VM is hacked because nobody installed OS security updates.", a: "You", why: "IaaS: the operating system is your job to patch." },
+      { q: "A developer pushes an API key to a public GitHub repo and someone abuses it.", a: "You", why: "Your data and who can access it is always yours, in every model. On Day 2 the key lives in Secret Manager instead." },
+      { q: "A flood knocks out power to a datacentre.", a: "Provider", why: "Physical datacentres and hardware are always the provider's job." },
+      { q: "Your Cloud Run app crashes because of a bug in your code.", a: "You", why: "In PaaS, application code is still yours." },
+      { q: "The OS underneath Cloud Run has an unpatched security hole.", a: "Provider", why: "In PaaS the provider runs and patches the OS and runtime." },
+      { q: "Someone made a Cloud Storage bucket public by mistake and private files leak.", a: "You", why: "Access settings on your data are always yours." },
+      { q: "A hard disk fails inside the provider's server rack.", a: "Provider", why: "Hardware is the provider's responsibility. That's the point of the cloud." },
+    ],
+  },
+  {
+    id: "translate", title: "Cloud Translator", blurb: "Same idea, different names. Translate the service to the other cloud.",
+    type: "choice", layout: "list", timed: true,
+    questions: [
+      { q: "AWS S3 → on Google Cloud?", a: "Cloud Storage", options: ["Cloud SQL", "Cloud Storage", "Compute Engine", "Artifact Registry"], why: "Object storage: S3 = Blob Storage = Cloud Storage." },
+      { q: "Azure Container Registry (ACR) → on Google Cloud?", a: "Artifact Registry", options: ["Cloud Run", "GKE", "Artifact Registry", "Secret Manager"], why: "Where images live. You push to Artifact Registry on Day 2." },
+      { q: "AWS Lambda → on Azure?", a: "Azure Functions", options: ["Azure Functions", "App Service", "AKS", "Blob Storage"], why: "Serverless functions: Lambda = Azure Functions = Cloud Run functions." },
+      { q: "Azure resource group → on Google Cloud?", a: "Project", options: ["Folder", "VPC", "Project", "Billing account"], why: "A GCP project holds everything for one app. Delete it and it's all gone, which is how Day 2 cleans up." },
+      { q: "Google GKE → on AWS?", a: "EKS", options: ["ECS", "EKS", "EC2", "ECR"], why: "Managed Kubernetes: EKS = AKS = GKE." },
+      { q: "AWS Secrets Manager → on Google Cloud?", a: "Secret Manager", options: ["Cloud IAM", "Secret Manager", "Cloud Storage", "Key Vault"], why: "Key Vault is Azure's. GCP's is Secret Manager, where your Gemini key goes on Day 2." },
+      { q: "Azure Virtual Machines → on Google Cloud?", a: "Compute Engine", options: ["App Engine", "Cloud Run", "Compute Engine", "GKE"], why: "Rentable servers: EC2 = Azure VMs = Compute Engine." },
+      { q: "AWS RDS → on Google Cloud?", a: "Cloud SQL", options: ["Cloud Storage", "Cloud SQL", "Compute Engine", "Cloud Run functions"], why: "Managed relational databases: RDS = Azure SQL = Cloud SQL." },
+    ],
+  },
+  {
+    id: "dockerfile", title: "Spot the Bugs", blurb: "This Dockerfile has 3 bugs. Click the broken lines. You get 5 clicks.",
+    type: "bugs", maxClicks: 5,
+    lines: [
+      { t: "FROM python:latest", bug: "`:latest` is a moving label, so builds aren't repeatable. Pin it: python:3.12-slim." },
+      { t: "WORKDIR /app" },
+      { t: "COPY . .", bug: "Copying all the code before installing breaks layer caching. Copy requirements.txt first, install, then COPY . ." },
+      { t: "RUN pip install -r requirements.txt" },
+      { t: "EXPOSE 8080" },
+      { t: "RUN [\"python\", \"app.py\"]", bug: "RUN happens at build time, so the build would hang running the app. Starting the app is CMD's job." },
+    ],
+  },
+  {
+    id: "pipeline", title: "Build the Pipeline", blurb: "Put the CI/CD stages in order, from a git push to a live URL.",
+    type: "order",
+    stages: [
+      { t: "Source", d: "git push to GitHub" },
+      { t: "Build", d: "docker build makes the image" },
+      { t: "Test", d: "automated tests run" },
+      { t: "Package", d: "tagged image pushed to Artifact Registry" },
+      { t: "Deploy", d: "Cloud Run runs the new image" },
+    ],
+  },
+];
+
+const RANKS = [
+  [0.95, "Cloud Architect", "🏆"],
+  [0.8, "DevOps Engineer", "🚀"],
+  [0.6, "Cloud Engineer", "🛠️"],
+  [0.4, "Cloud Intern", "🧑‍💻"],
+  [0, "Cloud Curious", "☁️"],
+];
+
+const QUESTION_SECONDS = 15;
+
+// ---------- State ----------
+
+const state = { name: "", score: 0, streak: 0, bestStreak: 0, correct: 0, total: 0, levelIdx: 0, info: { host: "local", version: "v?" } };
+let timer = null;
+const $app = document.getElementById("app");
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const shuffle = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const announce = (msg) => { document.getElementById("announce").textContent = msg; };
+
+function store(key, val) {
+  try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { return null; }
+}
+
+function hud() {
+  const s = document.getElementById("hud-score");
+  s.textContent = state.score;
+  s.classList.remove("pop"); void s.offsetWidth; s.classList.add("pop");
+  document.getElementById("hud-streak").textContent = state.streak;
+  document.getElementById("hud-level").textContent = state.levelIdx < LEVELS.length ? `Level ${state.levelIdx + 1}/${LEVELS.length}` : "Done";
+}
+
+function award(ok, bonus = 0) {
+  state.total++;
+  if (ok) {
+    state.correct++; state.streak++;
+    state.bestStreak = Math.max(state.bestStreak, state.streak);
+    const streakBonus = state.streak >= 3 ? 50 : 0;
+    const pts = 100 + bonus + streakBonus;
+    state.score += pts;
+    hud();
+    return pts;
+  }
+  state.streak = 0; hud();
+  return 0;
+}
+
+// ---------- Screens ----------
+
+function startScreen() {
+  const best = store("cq-best");
+  $app.innerHTML = `
+    <div class="card">
+      <h1>Cloud Quest</h1>
+      <p class="muted">Five quick levels on everything from Day 1. Answer fast for bonus points and keep a streak going.</p>
+      <ol class="levels">
+        ${LEVELS.map((l, i) => `<li><span class="n">${i + 1}</span><span><b>${esc(l.title)}</b><br><span class="muted">${esc(l.blurb)}</span></span></li>`).join("")}
+      </ol>
+      <label for="name">Your name (shows on your score card)</label>
+      <input id="name" type="text" maxlength="24" autocomplete="off" placeholder="e.g. Aadit">
+      <div class="row"><button class="primary" id="go">Start the quest →</button></div>
+      ${best ? `<p class="muted" style="margin-top:14px">Your best on this machine: <b>${esc(best)}</b> pts</p>` : ""}
+      <div class="tip">You're playing this inside a Docker container you built yourself. The ID in the footer is the container's hostname. Run <code>docker ps</code> and compare.</div>
+    </div>`;
+  const input = document.getElementById("name");
+  input.value = store("cq-name") || "";
+  const go = () => {
+    state.name = input.value.trim() || "Anonymous";
+    store("cq-name", state.name);
+    Object.assign(state, { score: 0, streak: 0, bestStreak: 0, correct: 0, total: 0, levelIdx: 0 });
+    hud(); levelIntro();
+  };
+  document.getElementById("go").onclick = go;
+  input.onkeydown = (e) => { if (e.key === "Enter") go(); };
+  input.focus();
+}
+
+function levelIntro() {
+  const l = LEVELS[state.levelIdx];
+  hud();
+  $app.innerHTML = `
+    <div class="card">
+      <div class="kicker">Level ${state.levelIdx + 1} of ${LEVELS.length}</div>
+      <h1>${esc(l.title)}</h1>
+      <p class="muted">${esc(l.blurb)}</p>
+      ${l.timed ? `<p class="muted">⏱️ ${QUESTION_SECONDS}s per question. Faster answers earn up to +50. A streak of 3+ earns +50 per answer.${l.layout !== "list" ? " Keys 1–" + l.options.length + " work too." : " Keys 1–4 work too."}</p>` : ""}
+      <div class="row"><button class="primary" id="go">Let's go</button></div>
+    </div>`;
+  const btn = document.getElementById("go");
+  btn.onclick = () => runLevel(l);
+  btn.focus();
+}
+
+function runLevel(l) {
+  if (l.type === "choice") return choiceLevel(l, 0, shuffle(l.questions));
+  if (l.type === "bugs") return bugsLevel(l);
+  if (l.type === "order") return orderLevel(l);
+}
+
+function nextLevel() {
+  state.levelIdx++;
+  if (state.levelIdx >= LEVELS.length) return results();
+  levelIntro();
+}
+
+// Multiple-choice levels (1-3)
+function choiceLevel(l, i, qs) {
+  clearInterval(timer);
+  if (i >= qs.length) return nextLevel();
+  const item = qs[i];
+  const opts = item.options ? shuffle(item.options) : l.options;
+  const layout = l.layout === "list" ? "" : l.layout;
+  $app.innerHTML = `
+    <div class="card">
+      <div class="kicker">${esc(l.title)} · ${i + 1}/${qs.length}</div>
+      <div class="progress"><div style="width:${(i / qs.length) * 100}%"></div></div>
+      <div class="timer"><div id="bar" style="width:100%"></div></div>
+      <div class="prompt">${esc(item.q)}</div>
+      <div class="options ${layout}">
+        ${opts.map((o, k) => `<button data-o="${esc(o)}"><span class="key">${k + 1}</span>${esc(o)}</button>`).join("")}
+      </div>
+      <div id="fb"></div>
+    </div>`;
+  const buttons = [...$app.querySelectorAll(".options button")];
+  const start = performance.now();
+  let done = false;
+
+  const answer = (choice) => {
+    if (done) return; done = true;
+    clearInterval(timer); document.onkeydown = null;
+    const left = Math.max(0, QUESTION_SECONDS - (performance.now() - start) / 1000);
+    const ok = choice === item.a;
+    const pts = award(ok, ok ? Math.round(50 * left / QUESTION_SECONDS) : 0);
+    buttons.forEach((b) => {
+      b.disabled = true;
+      if (b.dataset.o === item.a) b.classList.add("correct");
+      else if (b.dataset.o === choice) b.classList.add("wrong");
+    });
+    const head = choice === null ? "⏱️ Time's up!" : ok ? `✅ Correct! +${pts}` : `❌ It's ${item.a}`;
+    document.getElementById("fb").innerHTML = `
+      <div class="feedback ${ok ? "ok" : "no"}"><strong>${esc(head)}</strong>${esc(item.why)}</div>
+      <div class="row"><button class="primary" id="next">${i + 1 < qs.length ? "Next →" : "Finish level →"}</button></div>`;
+    announce(head);
+    const next = document.getElementById("next");
+    next.onclick = () => choiceLevel(l, i + 1, qs);
+    next.focus();
+  };
+
+  buttons.forEach((b) => (b.onclick = () => answer(b.dataset.o)));
+  document.onkeydown = (e) => { const n = parseInt(e.key, 10); if (n >= 1 && n <= buttons.length) answer(buttons[n - 1].dataset.o); };
+  const bar = document.getElementById("bar");
+  timer = setInterval(() => {
+    const left = QUESTION_SECONDS - (performance.now() - start) / 1000;
+    bar.style.width = `${Math.max(0, left / QUESTION_SECONDS) * 100}%`;
+    if (left <= 0) answer(null);
+  }, 100);
+}
+
+// Level 4: click the buggy Dockerfile lines
+function bugsLevel(l) {
+  const bugCount = l.lines.filter((x) => x.bug).length;
+  let clicks = 0, found = 0;
+  $app.innerHTML = `
+    <div class="card">
+      <div class="kicker">${esc(l.title)}</div>
+      <div class="prompt">Find the ${bugCount} bugs in this Dockerfile</div>
+      <p class="muted" id="left">Clicks left: ${l.maxClicks} · Bugs found: 0/${bugCount}</p>
+      <div class="code">
+        ${l.lines.map((x, k) => `<button data-k="${k}"><span class="ln">${k + 1}</span>${esc(x.t)}</button>`).join("")}
+      </div>
+      <div id="fb"></div>
+    </div>`;
+  const buttons = [...$app.querySelectorAll(".code button")];
+  const finish = () => {
+    buttons.forEach((b, k) => { b.disabled = true; if (l.lines[k].bug) b.classList.add("correct"); });
+    const missed = l.lines.filter((x, k) => x.bug && !buttons[k].dataset.hit);
+    const extra = missed.length ? `<p style="margin-top:8px"><b>Missed:</b></p>` + missed.map((x) => `<p><code>${esc(x.t)}</code> ${esc(x.bug)}</p>`).join("") : "";
+    const fb = document.getElementById("fb");
+    fb.insertAdjacentHTML("beforeend", `
+      <div class="feedback ${found === bugCount ? "ok" : "no"}"><strong>${found === bugCount ? "🐛 All bugs squashed!" : `You found ${found}/${bugCount}`}</strong>${extra}</div>
+      <div class="row"><button class="primary" id="next">Next level →</button></div>`);
+    const next = document.getElementById("next");
+    next.onclick = nextLevel; next.focus();
+  };
+  buttons.forEach((b) => (b.onclick = () => {
+    if (b.disabled) return;
+    const line = l.lines[+b.dataset.k];
+    clicks++; b.disabled = true;
+    if (line.bug) {
+      found++; b.dataset.hit = "1"; b.classList.add("correct");
+      const pts = award(true);
+      document.getElementById("fb").insertAdjacentHTML("beforeend", `<div class="feedback ok"><strong>✅ Bug! +${pts}</strong>${esc(line.bug)}</div>`);
+      announce("Bug found");
+    } else {
+      award(false); b.classList.add("wrong", "shake");
+      announce("That line is fine");
+    }
+    document.getElementById("left").textContent = `Clicks left: ${l.maxClicks - clicks} · Bugs found: ${found}/${bugCount}`;
+    if (found === bugCount || clicks >= l.maxClicks) {
+      // a bug you never clicked still counts as a question you got wrong
+      state.total += bugCount - found;
+      finish();
+    }
+  }));
+}
+
+// Level 5: click the stages in pipeline order
+function orderLevel(l) {
+  let pos = 0, mistakes = 0;
+  const tiles = shuffle(l.stages);
+  $app.innerHTML = `
+    <div class="card">
+      <div class="kicker">${esc(l.title)}</div>
+      <div class="prompt">Click the stages in order, first to last</div>
+      <div class="slots">${l.stages.map((_, k) => `<div class="slot" id="s${k}">${k + 1}</div>`).join("")}</div>
+      <div class="tiles">
+        ${tiles.map((s) => `<button class="tile" data-t="${esc(s.t)}"><b>${esc(s.t)}</b><small>${esc(s.d)}</small></button>`).join("")}
+      </div>
+      <div id="fb"></div>
+    </div>`;
+  const buttons = [...$app.querySelectorAll(".tile")];
+  buttons.forEach((b) => (b.onclick = () => {
+    if (b.disabled) return;
+    if (b.dataset.t === l.stages[pos].t) {
+      b.disabled = true; b.classList.add("correct");
+      const slot = document.getElementById(`s${pos}`);
+      slot.textContent = b.dataset.t; slot.classList.add("filled");
+      pos++;
+      if (pos === l.stages.length) {
+        // one "question" for the whole order; full marks only with no mistakes
+        const ok = mistakes === 0;
+        let pts = award(ok, ok ? 200 : 0);
+        if (!ok) { pts = Math.max(0, 300 - mistakes * 75); state.score += pts; hud(); }
+        document.getElementById("fb").innerHTML = `
+          <div class="feedback ${ok ? "ok" : "no"}"><strong>${ok ? `🚀 Perfect pipeline! +${pts}` : `Pipeline built with ${mistakes} slip${mistakes > 1 ? "s" : ""}. +${pts}`}</strong>
+          Source → Build → Test → Package → Deploy. The image that passed the tests is exactly what gets deployed. On Day 2, GitHub Actions does this on every push.</div>
+          <div class="row"><button class="primary" id="next">See my score →</button></div>`;
+        const next = document.getElementById("next");
+        next.onclick = nextLevel; next.focus();
+      }
+    } else {
+      mistakes++;
+      b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
+      announce("Not that one yet");
+    }
+  }));
+}
+
+function results() {
+  hud();
+  const acc = state.total ? state.correct / state.total : 0;
+  const [, rank, emoji] = RANKS.find(([min]) => acc >= min);
+  const prev = parseInt(store("cq-best") || "0", 10);
+  const isBest = state.score > prev;
+  if (isBest) store("cq-best", String(state.score));
+  const shortHost = String(state.info.host).slice(0, 12);
+  const share = `☁️ Cloud Quest | ${state.name}: ${state.score} pts | ${rank} ${emoji} | ${state.correct}/${state.total} correct | best streak ${state.bestStreak} | container ${shortHost}`;
+  $app.innerHTML = `
+    <div class="card">
+      <div class="kicker">Quest complete</div>
+      <div class="big">${state.score}</div>
+      <div class="rank">${emoji} ${esc(rank)}${isBest && prev ? " · new personal best!" : ""}</div>
+      <div class="stats">
+        <div class="stat"><b>${state.correct}/${state.total}</b>correct</div>
+        <div class="stat"><b>${Math.round(acc * 100)}%</b>accuracy</div>
+        <div class="stat"><b>${state.bestStreak}🔥</b>best streak</div>
+      </div>
+      <p><b>Paste this in the Meet chat:</b></p>
+      <div class="share" id="share">${esc(share)}</div>
+      <div class="row">
+        <button class="primary" id="copy">Copy score</button>
+        <button id="again">Play again</button>
+      </div>
+      <div class="tip">Your score card names container <code>${esc(shortHost)}</code>. Run <code>docker ps</code>: it's the same ID. Stop the container with <code>docker stop</code>, start a new one, and that ID changes. Containers are disposable.</div>
+    </div>`;
+  document.getElementById("copy").onclick = async (e) => {
+    try { await navigator.clipboard.writeText(share); e.target.textContent = "Copied ✓"; }
+    catch (err) {
+      const r = document.createRange(); r.selectNodeContents(document.getElementById("share"));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      e.target.textContent = "Selected, press Ctrl+C";
+    }
+  };
+  document.getElementById("again").onclick = startScreen;
+  document.getElementById("copy").focus();
+}
+
+// ---------- Boot ----------
+
+fetch("/api/info")
+  .then((r) => (r.ok ? r.json() : Promise.reject()))
+  .then((info) => { state.info = info; })
+  .catch(() => {})
+  .finally(() => {
+    document.getElementById("host").textContent = state.info.host;
+    document.getElementById("ver").textContent = state.info.version;
+    startScreen();
+  });
+</script>
+</body>
+</html>
